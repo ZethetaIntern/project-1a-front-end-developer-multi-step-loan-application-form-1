@@ -47,8 +47,9 @@ export default function Step4Address({ form }) {
       </div>
       <p className="text-sm font-semibold text-slate-600" aria-live="polite">
         {pinStatus === "loading" ? "Looking up PIN..." : null}
-        {pinStatus === "found" ? "PIN details populated." : null}
+        {pinStatus === "found" ? `PIN details populated: ${watch("currentCity") || ""}, ${watch("currentState") || ""}` : null}
         {pinStatus === "missing" ? "No local match found for this PIN." : null}
+        {pinStatus === "invalid" ? "Enter a valid 6-digit PIN." : null}
       </p>
       {derivedState && state && derivedState !== state ? <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-warning">State differs from the PIN lookup result.</p> : null}
       {residenceType === "Rented" ? <Input label="Monthly Rent" name="monthlyRent" type="number" register={register} error={formState.errors.monthlyRent} /> : null}

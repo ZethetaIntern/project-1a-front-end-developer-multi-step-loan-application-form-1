@@ -42,7 +42,14 @@ export default function FileUpload({ label, value, onChange }) {
     async (accepted, rejected) => {
       setError("");
       if (rejected.length) {
-        setError(rejected[0].errors[0]?.message || "File is not accepted.");
+        const err = rejected[0].errors[0];
+        if (err?.code === "file-invalid-type") {
+          setError("File is not accepted. Please upload a PDF, JPG, or PNG file.");
+        } else if (err?.code === "file-too-large") {
+          setError("File is not accepted. File size exceeds the 5 MB limit.");
+        } else {
+          setError(err?.message || "File is not accepted.");
+        }
         return;
       }
       const file = accepted[0];

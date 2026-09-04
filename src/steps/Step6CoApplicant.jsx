@@ -5,7 +5,7 @@ import Input from "../components/common/Input.jsx";
 import Select from "../components/common/Select.jsx";
 import SignatureCanvasField from "../components/common/SignatureCanvas.jsx";
 import useVerification from "../hooks/useVerification.js";
-import { isAllowedPanForLoan } from "../utils/validators.js";
+import { isAllowedPanForLoan, isPanFormat } from "../utils/validators.js";
 
 export default function Step6CoApplicant({ form }) {
   const { register, formState, watch, setValue, setError, clearErrors } = form;
@@ -31,19 +31,28 @@ export default function Step6CoApplicant({ form }) {
         }} />
         <button
           type="button"
+          id="verifyCoPanBtn"
           className="rounded-md bg-primary px-4 py-2 text-sm font-bold text-white focus-ring disabled:opacity-60"
           disabled={loadingField === "coPan"}
-          onClick={() =>
+          onClick={() => {
+            if (!isPanFormat(coPan)) {
+              setError("coPan", { message: "Co-applicant PAN format is invalid." });
+              return;
+            }
+            if (!isAllowedPanForLoan(coPan, "personal")) {
+              setError("coPan", { message: "Enter a valid individual PAN." });
+              return;
+            }
             verify(
               "coPan",
-              isAllowedPanForLoan(coPan, "personal"),
+              true,
               () => {
                 setValue("coPanVerified", true, { shouldValidate: true });
                 clearErrors(["coPan", "coPanVerified"]);
               },
               () => setError("coPan", { message: "Enter a valid individual PAN." }),
-            )
-          }
+            );
+          }}
         >
           {loadingField === "coPan" ? "Verifying..." : watch("coPanVerified") ? "Verified" : "Verify PAN"}
         </button>

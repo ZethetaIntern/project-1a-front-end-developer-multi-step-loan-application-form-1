@@ -23,11 +23,11 @@ function fillStep2(marital = "Married") {
 
 function fillKyc(pan = "ABCPF1234F") {
   cy.get("#pan").type(pan);
-  cy.contains("button", "Verify PAN").click();
-  cy.contains("button", "Verified", { timeout: 2500 });
+  cy.get("#verifyPanBtn").click();
+  cy.get("#verifyPanBtn").should("contain.text", "Verified");
   cy.get("#aadhaar").type(validAadhaar);
-  cy.contains("button", "Verify Aadhaar").click();
-  cy.contains("button", "Verified", { timeout: 2500 });
+  cy.get("#verifyAadhaarBtn").click();
+  cy.get("#verifyAadhaarBtn").should("contain.text", "Verified");
   cy.get("#aadhaarConsent").check();
   cy.contains("button", "Next").click();
 }
@@ -60,14 +60,31 @@ function fillEmployment(kind = "salaried") {
   cy.contains("button", "Next").click();
 }
 
-function fillCoApplicant() {
+function drawSignature(selector = "canvas") {
+  cy.get(selector).then(($el) => {
+    const canvas = $el.is("canvas") ? $el[0] : $el.find("canvas")[0];
+    const rect = canvas.getBoundingClientRect();
+    const x1 = Math.round(rect.left + 30);
+    const y1 = Math.round(rect.top + 30);
+    const x2 = Math.round(rect.left + 90);
+    const y2 = Math.round(rect.top + 60);
+    cy.wrap(canvas)
+      .scrollIntoView()
+      .trigger("mousedown", { which: 1, clientX: x1, clientY: y1, force: true })
+      .trigger("mousemove", { which: 1, clientX: x2, clientY: y2, force: true })
+      .trigger("mouseup", { which: 1, clientX: x2, clientY: y2, force: true });
+  });
+}
+
+function fillCoApplicant(relationship = "Parent") {
   cy.get("#coName").type("Priya Kumar");
+  cy.get("#coRelationship").select(relationship);
   cy.get("#coIncome").type("50000");
   cy.get("#coPan").type("ABCPF1234F");
-  cy.contains("button", "Verify PAN").click();
-  cy.contains("button", "Verified", { timeout: 2500 });
+  cy.get("#verifyCoPanBtn").click();
+  cy.get("#verifyCoPanBtn").should("contain.text", "Verified");
   cy.get("#coConsent").check();
-  cy.get("canvas").last().trigger("mousedown", { which: 1, clientX: 50, clientY: 50 }).trigger("mousemove", { clientX: 120, clientY: 90 }).trigger("mouseup");
+  drawSignature("canvas:last");
   cy.contains("button", "Next").click();
 }
 
@@ -75,7 +92,8 @@ function uploadDocs() {
   cy.get("input[type=file]").each(($input) => {
     cy.wrap($input).selectFile("cypress/fixtures/sample.pdf", { force: true });
   });
-  cy.get("canvas").first().trigger("mousedown", { which: 1, clientX: 40, clientY: 40 }).trigger("mousemove", { clientX: 110, clientY: 80 }).trigger("mouseup");
+  cy.contains("span", "Uploaded");
+  drawSignature("canvas:first");
   cy.contains("button", "Next").click();
 }
 
@@ -108,7 +126,15 @@ describe("loan application journeys", () => {
     fillKyc();
     fillAddress();
     fillEmployment();
-    cy.contains("Co-Applicant");
+    fillCoApplicant();
+    uploadDocs();
+    cy.contains("Pre-Approval Summary");
+    cy.get("#consentAccuracy").check();
+    cy.get("#consentCredit").check();
+    cy.get("#consentTerms").check();
+    cy.get("#consentCommunication").check();
+    cy.contains("Submit Application").click();
+    cy.contains("Application Submitted Successfully");
   });
 
   it("Business Loan happy path", () => {
@@ -117,7 +143,15 @@ describe("loan application journeys", () => {
     fillKyc("ABCCF1234F");
     fillAddress();
     fillEmployment("businessOwner");
-    cy.contains("Co-Applicant");
+    fillCoApplicant("Business Partner");
+    uploadDocs();
+    cy.contains("Pre-Approval Summary");
+    cy.get("#consentAccuracy").check();
+    cy.get("#consentCredit").check();
+    cy.get("#consentTerms").check();
+    cy.get("#consentCommunication").check();
+    cy.contains("Submit Application").click();
+    cy.contains("Application Submitted Successfully");
   });
 
   it("validates Step 1", () => {
@@ -135,7 +169,7 @@ describe("loan application journeys", () => {
     fillStep1();
     fillStep2();
     cy.get("#pan").type("BADPAN");
-    cy.contains("button", "Verify PAN").click();
+    cy.get("#verifyPanBtn").click();
     cy.contains("invalid");
   });
 
@@ -193,7 +227,7 @@ describe("loan application journeys", () => {
     fillKyc();
     fillAddress();
     fillEmployment();
-    cy.get("canvas").first().trigger("mousedown", { which: 1, clientX: 40, clientY: 40 }).trigger("mousemove", { clientX: 110, clientY: 80 }).trigger("mouseup");
+    drawSignature("canvas:first");
     cy.contains("Signature captured");
   });
 
@@ -211,7 +245,9 @@ describe("loan application journeys", () => {
 
   it("handles rapid navigation clicks", () => {
     fillStep1("personal", "300000", "24");
-    cy.contains("button", "Previous").click().click();
+    cy.contains("button", "Previous").click();
+    cy.contains("button", "Previous").click({ force: true });
+    cy.contains("button", "Previous").should("be.disabled");
     cy.contains("Loan Details");
   });
 

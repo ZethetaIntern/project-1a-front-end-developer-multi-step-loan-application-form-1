@@ -10,7 +10,8 @@ export default function Step7Documents({ form }) {
   const requiredDocs = requiredDocumentTypes(data);
 
   function setDocument(key, file) {
-    setValue("documents", { ...documents, [key]: file || undefined }, { shouldDirty: true, shouldValidate: true });
+    const currentDocs = form.getValues("documents") || {};
+    setValue("documents", { ...currentDocs, [key]: file || undefined }, { shouldDirty: true, shouldValidate: true });
   }
 
   return (
